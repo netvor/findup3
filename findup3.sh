@@ -87,10 +87,17 @@ while read -r nDI nM nS nN
       mH=$(sha1sum $TMP | head -c40)
       #get the new size
       mS=$(stat --printf='%s' $TMP)
-      #print new entry to fd9
-      printf '%s\t%s\t%12s\t%s\t%s%s\n' "$nDI" "$nM" "$mS" "$mH" "$nN" "$SECONDENTRYSUFFIX" >&9
-      ((NUMHASHES++))
-      ((NUMFILES++))
+      #check if checksum and size of the stripped MP3 are different from the original file.
+      #  if not, the stripping had no effect, probably because the MP3 does not have any tags.
+      if [[ $mH\ $mS != $nH\ $nS ]]
+       then
+        #If stripped MP3 is different from the original: print new entry to fd9
+        printf '%s\t%s\t%12s\t%s\t%s%s\n' "$nDI" "$nM" "$mS" "$mH" "$nN" "$SECONDENTRYSUFFIX" >&9
+        ((NUMHASHES++))
+        ((NUMFILES++))
+       else
+        [[ $VERBOSE ]] && echo " --> Skipping, found no tags to strip."
+      fi
     fi
   fi
 #Use BASH-only syntax to now call the INPUT to the while-read loop as a subshell
