@@ -70,7 +70,9 @@ while read -r nDI nM nS nN
     #Compute hash of file
     #  Since the file is quoted and escaped, unquote it and run it through printf to get the "real" filename, then via xargs to cat and sha1sum
     #  The benefit of piping through cat is that there is a fallback: if the file can't be read it will get a default checksum=sha1sum("")
-    nH=$(printf "${nN:1:$((${#nN}-2))}" | xargs -0 cat | sha1sum | head -c40)
+    #  Since the filename is used inside the printf PATTERN (instead of the arguments), we need to escape percent signs to prevent printf interpreting them.
+    NEWnN=${nN//%/%%}
+    nH=$(printf "${NEWnN:1:$((${#NEWnN}-2))}" | xargs -0 cat | sha1sum | head -c40)
     #print new entry to fd9
     printf '%s\t%s\t%12s\t%s\t%s\n' "$nDI" "$nM" "$nS" "$nH" "$nN" >&9
     ((NUMHASHES++))
@@ -79,8 +81,8 @@ while read -r nDI nM nS nN
     if [[ $nN =~ \.[Mm][Pp]3\'$ ]]
      then
       [[ $VERBOSE ]] && printf " --> Found MP3 file..."
-      #make a temp copy of the file
-      printf "${nN:1:$((${#nN}-2))}" | xargs -0rI '////' cp "////" $TMP
+      #make a temp copy of the file. Use NEWnN, since the filename is used as a printf pattern string
+      printf "${NEWnN:1:$((${#NEWnN}-2))}" | xargs -0rI '////' cp "////" $TMP
       #Strip tags, suppressing output if not verbose
       [[ $VERBOSE ]] && id3v2 -D $TMP || id3v2 -D $TMP >/dev/null
       #get the new checksum
